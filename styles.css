@@ -1,0 +1,58 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: black;
+  /* display: flex; */
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  height: 100vh;
+  font-family: monospace;
+  color: white;
+}
+
+canvas {
+  display: block;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+  margin: 0 auto;
+}
+
+.controls {
+  position: absolute;
+  bottom: 20px;
+  color: white;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 10px;
+  border-radius: 5px;
+  font-family: monospace;
+}
+
+/* Custom styling for dat.GUI */
+.dg.ac {
+  z-index: 1000 !important;
+}
+
+.dg .cr.function .property-name {
+  width: 100%;
+}
+
+.dg .c .slider {
+  background: #444;
+}
+
+.dg .c .slider:hover {
+  background: #555;
+}
+
+.dg .c .slider-fg {
+  background: #8af;
+}
+
+.dg .cr.number input[type=text] {
+  color: #2fa1d6;
+}
+
+/* Remove old selector styles that aren't needed anymore */
+.ui-controls {
+  display: none;
+}
