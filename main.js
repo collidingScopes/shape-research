@@ -5,12 +5,8 @@ Video export
 Control zoom and rotation with hands/webcam tracking???
 Additional shape types and styles
 Ability to upload a 3d mesh / point cloud and visualize it???
-jitter value is becoming untracked when changing shape / regenerating
-- jitter value of 0 in the dat.gui menu is becoming uncalibrated from the actual animation
 Add glitching / noise effects
 Show fps indicator at the top-left of the page?
-Auto-rotate doesn't seem to work / becomes untracked from reality
-- auto-rotate should be temp disable while the user is controlling the rotation, but then it should be re-activated once the user stops rotating
 Is it possible to still rotate and zoom when the animation is paused?
 More fine-grain control over jitter (x, y, z, dimensions??)
 Why does rotation still continue when speed is set to zero?
@@ -412,7 +408,7 @@ function render(time) {
         quat.multiply(rotationQuaternion, tempQuaternion, rotationQuaternion);
         
         // Add a gentle wobble if desired
-        const wobbleAmount = Math.sin(virtualTime * 0.3) * 0.01;
+        const wobbleAmount = Math.sin(virtualTime * 0.3) * 0.0;
         quat.fromAxisAngle(tempQuaternion, [1, 0, 0], wobbleAmount);
         quat.multiply(rotationQuaternion, tempQuaternion, rotationQuaternion);
         
