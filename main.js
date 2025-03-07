@@ -14,6 +14,8 @@ Auto-rotate doesn't seem to work / becomes untracked from reality
 Is it possible to still rotate and zoom when the animation is paused?
 More fine-grain control over jitter (x, y, z, dimensions??)
 Rotation can become unsynced / reversed / upside down (and therefore unintuitive to the user) depending on past actions -- can this be constant?
+Randomize inputs function / hotkey
+Changing shape or toggling any dat.gui inputs should restart the animation if it is paused
 */
 
 // Main application logic
@@ -171,11 +173,8 @@ generateGeometry();
 updateColors();
 updateBackgroundColor();
 
-// Animation state
-let rotation = { x: 0, y: 0 };
-let lastTime = 0;
-
-// Mouse interaction
+let rotationQuaternion = [0, 0, 0, 1]; // [x, y, z, w] - initialize to identity
+let tempQuaternion = [0, 0, 0, 1];
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
 
@@ -198,10 +197,28 @@ window.addEventListener('mousemove', (e) => {
         y: e.clientY - previousMousePosition.y
     };
     
-    rotation.y += deltaMove.x * 0.01;
-    rotation.x += deltaMove.y * 0.01;
+    // Calculate rotation magnitude based on movement
+    const rotationSpeed = 0.005;
+    const horizontalRotation = deltaMove.x * rotationSpeed;
+    const verticalRotation = deltaMove.y * rotationSpeed;
+    
+    // Create quaternions for horizontal and vertical rotations
+    // For horizontal rotation, rotate around world up vector (0, 1, 0)
+    quat.fromAxisAngle(tempQuaternion, [0, 1, 0], horizontalRotation);
+    quat.multiply(rotationQuaternion, tempQuaternion, rotationQuaternion);
+    
+    // For vertical rotation, rotate around camera-relative right vector (1, 0, 0)
+    quat.fromAxisAngle(tempQuaternion, [1, 0, 0], verticalRotation);
+    quat.multiply(rotationQuaternion, tempQuaternion, rotationQuaternion);
+    
+    // Normalize to prevent drift
+    quat.normalize(rotationQuaternion, rotationQuaternion);
     
     previousMousePosition = { x: e.clientX, y: e.clientY };
+    
+    // Disable auto-rotate when user manually rotates
+    settings.autoRotate = false;
+    updateDatGUI();
 });
 
 canvas.addEventListener('wheel', (e) => {
@@ -347,16 +364,28 @@ function render(time) {
     
     // Auto-rotation if enabled and not paused
     if (settings.autoRotate && !settings.isPaused) {
-        rotation.y += deltaTime * settings.rotationSpeed;
-        rotation.x = Math.sin(virtualTime * 0.3) * 0.2;
+        // Create a quaternion for a small rotation around Y axis
+        quat.fromAxisAngle(tempQuaternion, [0, 1, 0], deltaTime * settings.rotationSpeed);
+        quat.multiply(rotationQuaternion, tempQuaternion, rotationQuaternion);
+        
+        // Add a gentle wobble if desired
+        const wobbleAmount = Math.sin(virtualTime * 0.3) * 0.01;
+        quat.fromAxisAngle(tempQuaternion, [1, 0, 0], wobbleAmount);
+        quat.multiply(rotationQuaternion, tempQuaternion, rotationQuaternion);
+        
+        // Normalize to prevent drift
+        quat.normalize(rotationQuaternion, rotationQuaternion);
     }
     
     // Set up model-view matrix
     const modelViewMatrix = new Float32Array(16);
     mat4.identity(modelViewMatrix);
     mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -settings.zoom]);
-    mat4.rotateX(modelViewMatrix, modelViewMatrix, rotation.x);
-    mat4.rotateY(modelViewMatrix, modelViewMatrix, rotation.y);
+    
+    // Apply quaternion rotation instead of Euler angles
+    const rotationMatrix = new Float32Array(16);
+    quat.toMat4(rotationMatrix, rotationQuaternion);
+    mat4.multiply(modelViewMatrix, modelViewMatrix, rotationMatrix);
     
     gl.uniformMatrix4fv(modelViewMatrixUniform, false, modelViewMatrix);
     
@@ -396,6 +425,9 @@ function render(time) {
 
 // Initialize dat.GUI
 const gui = initGUI();
+
+// Need to initialize lastTime before first render
+let lastTime = performance.now() * 0.001;
 
 // Remove the old shape selector UI
 const oldSelector = document.querySelector('.ui-controls');

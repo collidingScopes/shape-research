@@ -16,7 +16,7 @@ canvas {
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
   margin: 0 auto;
 }
-
+/* 
 .controls {
   position: absolute;
   bottom: 20px;
@@ -25,7 +25,7 @@ canvas {
   padding: 10px;
   border-radius: 5px;
   font-family: monospace;
-}
+} */
 
 /* Custom styling for dat.GUI */
 .dg.ac {
@@ -50,9 +50,4 @@ canvas {
 
 .dg .cr.number input[type=text] {
   color: #2fa1d6;
-}
-
-/* Remove old selector styles that aren't needed anymore */
-.ui-controls {
-  display: none;
 }

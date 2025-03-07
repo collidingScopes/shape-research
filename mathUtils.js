@@ -171,3 +171,82 @@ const mat4 = {
       return out;
   }
 };
+
+const quat = {
+  // Create a quaternion from axis angle
+  fromAxisAngle: function(out, axis, angle) {
+      const halfAngle = angle / 2;
+      const s = Math.sin(halfAngle);
+      out[0] = axis[0] * s;
+      out[1] = axis[1] * s;
+      out[2] = axis[2] * s;
+      out[3] = Math.cos(halfAngle);
+      return out;
+  },
+  
+  // Multiply two quaternions
+  multiply: function(out, a, b) {
+      const ax = a[0], ay = a[1], az = a[2], aw = a[3];
+      const bx = b[0], by = b[1], bz = b[2], bw = b[3];
+      
+      out[0] = ax * bw + aw * bx + ay * bz - az * by;
+      out[1] = ay * bw + aw * by + az * bx - ax * bz;
+      out[2] = az * bw + aw * bz + ax * by - ay * bx;
+      out[3] = aw * bw - ax * bx - ay * by - az * bz;
+      
+      return out;
+  },
+  
+  // Convert quaternion to rotation matrix
+  toMat4: function(out, q) {
+      const x = q[0], y = q[1], z = q[2], w = q[3];
+      const x2 = x + x, y2 = y + y, z2 = z + z;
+      const xx = x * x2, xy = x * y2, xz = x * z2;
+      const yy = y * y2, yz = y * z2, zz = z * z2;
+      const wx = w * x2, wy = w * y2, wz = w * z2;
+      
+      out[0] = 1 - (yy + zz);
+      out[1] = xy + wz;
+      out[2] = xz - wy;
+      out[3] = 0;
+      
+      out[4] = xy - wz;
+      out[5] = 1 - (xx + zz);
+      out[6] = yz + wx;
+      out[7] = 0;
+      
+      out[8] = xz + wy;
+      out[9] = yz - wx;
+      out[10] = 1 - (xx + yy);
+      out[11] = 0;
+      
+      out[12] = 0;
+      out[13] = 0;
+      out[14] = 0;
+      out[15] = 1;
+      
+      return out;
+  },
+
+  // Normalize a quaternion
+  normalize: function(out, q) {
+    const x = q[0], y = q[1], z = q[2], w = q[3];
+    let len = Math.sqrt(x * x + y * y + z * z + w * w);
+    
+    if (len === 0) {
+        out[0] = 0;
+        out[1] = 0;
+        out[2] = 0;
+        out[3] = 1;
+        return out;
+    }
+    
+    len = 1 / len;
+    out[0] = x * len;
+    out[1] = y * len;
+    out[2] = z * len;
+    out[3] = w * len;
+    
+    return out;
+  },
+};
