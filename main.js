@@ -13,7 +13,7 @@ Auto-rotate doesn't seem to work / becomes untracked from reality
 - auto-rotate should be temp disable while the user is controlling the rotation, but then it should be re-activated once the user stops rotating
 Is it possible to still rotate and zoom when the animation is paused?
 More fine-grain control over jitter (x, y, z, dimensions??)
-Rotation can become unsynced / reversed / upside down (and therefore unintuitive to the user) depending on past actions -- can this be constant?
+Why does rotation still continue when speed is set to zero?
 Randomize inputs function / hotkey
 Changing shape or toggling any dat.gui inputs should restart the animation if it is paused
 */
@@ -177,16 +177,32 @@ let rotationQuaternion = [0, 0, 0, 1]; // [x, y, z, w] - initialize to identity
 let tempQuaternion = [0, 0, 0, 1];
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
+let autoRotateBefore = true; // Track if auto-rotate was enabled before interaction
+let lastUserInteraction = 0; // Track when the user last interacted with the model
+const autoRotateResumeDelay = 250; // Delay in ms before auto-rotation resumes
+let userHasInteracted = false; // Track if user has interacted at all
 
 canvas.addEventListener('mousedown', (e) => {
     isDragging = true;
     previousMousePosition = { x: e.clientX, y: e.clientY };
+    
+    // Only store the auto-rotate state if this is the first interaction
+    // or after auto-rotation has resumed
+    if (!userHasInteracted || settings.autoRotate) {
+        autoRotateBefore = settings.autoRotate;
+        userHasInteracted = true;
+    }
+    
+    // Always disable auto-rotation during dragging
     settings.autoRotate = false;
     updateDatGUI();
 });
 
 window.addEventListener('mouseup', () => {
-    isDragging = false;
+    if (isDragging) {
+        isDragging = false;
+        lastUserInteraction = performance.now(); // Reset the timer when dragging stops
+    }
 });
 
 window.addEventListener('mousemove', (e) => {
@@ -216,15 +232,30 @@ window.addEventListener('mousemove', (e) => {
     
     previousMousePosition = { x: e.clientX, y: e.clientY };
     
-    // Disable auto-rotate when user manually rotates
-    settings.autoRotate = false;
-    updateDatGUI();
+    // Ensure auto-rotation is disabled during active dragging
+    // but don't reset the autoRotateBefore value
+    if (settings.autoRotate) {
+        settings.autoRotate = false;
+        updateDatGUI();
+    }
+    
+    // Update the last interaction time during active dragging
+    lastUserInteraction = performance.now();
 });
 
 canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     settings.zoom += e.deltaY * 0.003;
     settings.zoom = Math.max(0.5, Math.min(settings.zoom, 15.0));
+    
+    // Consider zooming as user interaction for auto-rotation purposes
+    if (settings.autoRotate) {
+        autoRotateBefore = true;
+        settings.autoRotate = false;
+    }
+    
+    lastUserInteraction = performance.now();
+    userHasInteracted = true;
     updateDatGUI();
 });
 
@@ -271,9 +302,10 @@ function initGUI() {
     
     // Animation controls
     const animationFolder = gui.addFolder('Animation');
+    /*
     animationFolder.add(settings, 'autoRotate')
         .name('Auto Rotate');
-        
+    */  
     animationFolder.add(settings, 'rotationSpeed', 0.0, 1.0, 0.05)
         .name('Rotation Speed');
         
@@ -302,10 +334,12 @@ function initGUI() {
         
     colorFolder.open();
     
+    /*
     // Action button
     gui.add(settings, 'regenerateGeometry')
         .name('Regenerate');
-        
+    */
+
     return gui;
 }
 
@@ -351,6 +385,15 @@ function render(time) {
     if (!settings.isPaused) {
         deltaTime = realTime - lastTime;
         lastTime = realTime;
+    }
+    
+    // Enhanced auto-rotation resumption
+    if (userHasInteracted && autoRotateBefore && !isDragging && !settings.autoRotate) {
+        const timeSinceInteraction = performance.now() - lastUserInteraction;
+        if (timeSinceInteraction > autoRotateResumeDelay) {
+            settings.autoRotate = true;
+            updateDatGUI();
+        }
     }
     
     // Clear canvas
